@@ -20,15 +20,15 @@ from keras.models import Model
 
 from keras_contrib.layers import InstanceNormalization
 
-from loss import *
-from metrics import *
+from .loss import *
+from .metrics import *
 
 class MyModel():
     def __init__(self,
                  model,
                  input_shape,
                  lossfn='dice',
-                 classes=1,
+                 classes=3,
                  axis=-1,
                  noise=0.1,
                  depth=4,
@@ -126,7 +126,7 @@ class MyModel():
                 x = self._activation(x)
         return x
 
-    def _upconv3d(self, inputs, skip_input, filters, se_block=False, se_ratio=16, loop=2):
+    def _upconv3d(self, inputs, skip_input, filters, se_block=True, se_ratio=16, loop=2):
         x = ZeroPadding3D(((0, 1), (0, 1), (0, 1)))(inputs)
         x = Conv3DTranspose(filters, (2, 2, 2), strides=(2, 2, 2), use_bias=False, padding='same')(x)
         x = self._norm(x)
