@@ -51,7 +51,7 @@ def get_arguments():
 
     # etc
     parser.add_argument("--checkpoint", type=str, default=None)
-    parser.add_argument("--callback", type=int, default=1)
+    parser.add_argument("--callback", type=int, default=0)
     parser.add_argument("--cb-root", type=str, default=None)
     
     return parser.parse_args()
@@ -102,40 +102,43 @@ def main():
         axis=-1,
         noise=0.1,
         depth=DEPTH,
-        base_filter=int(32/DIVIDE))
+        base_filter=32)
+
+    if CHECKPOINT:
+        model.mymodel.load_weights(CHECKPOINT)
+        INITIAL_EPOCH = int(CHECKPOINT.split('_')[-2])
+            
+        print("Load weights successfully at {}".format(CHECKPOINT))
+        print("Initial epoch :", INITIAL_EPOCH)
+
+    model.compile(LR)
 
     if args.command == "train":
         ##############################################
         # Set Callbacks
         ##############################################
-        set_cbdir(CB_ROOT, MODEL, TASK)
+        if args.callback:
+            set_cbdir(CB_ROOT, MODEL, TASK)
+            callback_name = "{}_{}_{}_{}_{}_{}_{}".format(LR, LOSSFN, DIVIDE, WLEVEL, WWIDTH, DEPTH, STANDARD)
 
-        callback_name = "{}_{}_{}_{}_{}_{}_{}".format(LR, LOSSFN, DIVIDE, WLEVEL, WWIDTH, DEPTH, STANDARD)
+            cp = callback_checkpoint(filepath=os.path.join(CB_ROOT, 'checkpoint', MODEL, TASK, callback_name+'_{epoch:04d}_{val_tumor_dice:.4f}.h5'),
+                                    monitor='val_tumor_dice',
+                                    verbose=1,
+                                    mode='max',
+                                    save_best_only=True,
+                                    save_weights_only=False)
+
+            el = callback_epochlogger(filename=os.path.join(CB_ROOT, 'history', MODEL, TASK, callback_name+'_epoch.csv'),
+                                        separator=',', append=True)
+
+            tb = callback_tensorboard(log_dir=os.path.join(CB_ROOT, 'logs', MODEL, TASK, callback_name), batch_size=1)
+            
+            ls = callback_learningrate(LR, EPOCHS, INITIAL_EPOCH, TASK)
         
-        if CHECKPOINT:
-            model.mymodel.load_weights(CHECKPOINT)
-            INITIAL_EPOCH = int(CHECKPOINT.split('_')[-2])
-                
-            print("Load weights successfully at {}".format(CHECKPOINT))
-            print("Initial epoch :", INITIAL_EPOCH)
+            callbacks = [cp, el, tb, ls]
 
-        model.compile(OPTIMIZER, LR)
-
-        cp = callback_checkpoint(filepath=os.path.join(CB_ROOT, 'checkpoint', MODEL, TASK, callback_name+'_{epoch:04d}_{val_tumor_dice:.4f}.h5'),
-                                 monitor='val_tumor_dice',
-                                 verbose=1,
-                                 mode='max',
-                                 save_best_only=True,
-                                 save_weights_only=False)
-
-        el = callback_epochlogger(filename=os.path.join(CB_ROOT, 'history', MODEL, TASK, callback_name+'_epoch.csv'),
-                                    separator=',', append=True)
-
-        tb = callback_tensorboard(log_dir=os.path.join(CB_ROOT, 'logs', MODEL, TASK, callback_name), batch_size=1)
-        
-        ls = callback_learningrate(LR, EPOCHS, INITIAL_EPOCH, TASK)
-        
-        callbacks = [cp, el, tb, ls] if args.callback else []
+        else:
+            callbacks = []
         
         ##############################################
         # Train
@@ -168,17 +171,12 @@ def main():
             wlevel=WLEVEL,
             wwidth=WWIDTH)
 
-        steps_per_epoch = {'kidney': len(trainset),
-                           'tumor': 332,
+        steps_per_epoch = {'tumor': 332,
                            'tumor1': len(trainset)}
-        validation_steps = {'kidney': len(valset),
-                            'tumor': 42,
+        validation_steps = {'tumor': 42,
                             'tumor1': len(valset)}
-
         total_steps = {'tumor': 332+42+42,
                        'tumor1': len(trainset+valset+testset)}
-        
-        # teststep : 42
 
         # training for trainset
         model.mymodel.fit_generator(generator=train_generator,

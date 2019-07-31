@@ -2,8 +2,6 @@ import keras
 import keras.backend as K
 import tensorflow as tf
 
-from metrics import *
-
 def focal(alpha=0.25, gamma=2.0):
     def _focal(y_true, y_pred):
         loss = 0.

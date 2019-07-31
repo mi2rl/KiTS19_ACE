@@ -8,21 +8,16 @@ from keras.layers import Conv3D
 from keras.layers import LeakyReLU
 from keras.layers import MaxPooling3D
 from keras.layers import ZeroPadding3D
-from keras.layers import UpSampling3D
 from keras.layers import Lambda
 from keras.layers import Conv3DTranspose
 from keras.layers import GlobalAveragePooling3D
-from keras.layers import BatchNormalization
-from keras.layers import Activation
 from keras.layers import Dense
 from keras.layers import Reshape
 from keras.layers import Multiply
 from keras.layers import Add
-from keras.layers.merge import _Merge
 
 from keras.models import Model
 
-from keras.constraints import Constraint
 from keras_contrib.layers import InstanceNormalization
 
 from loss import *
@@ -111,7 +106,7 @@ class MyModel():
         se = Dense(filters//se_ratio, activation='relu')(se)
         se = Dense(filters, activation='sigmoid')(se)
         se = Reshape([1, 1, 1, filters])(se)
-        x = Multiply()([x, se])
+        x = Multiply()([inputs, se])
         shortcut = Conv3D(filters, (3, 3, 3), use_bias=False, padding='same')(block_input)
         shortcut = self._norm(shortcut)
         x = Add()([x, shortcut])

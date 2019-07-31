@@ -9,7 +9,7 @@ from scipy import ndimage
 
 from sklearn.model_selection import train_test_split
 
-INPUT_FOLDER = '../data/interpolated'
+INPUT_FOLDER = '../../../data/interpolated'
 
 def load(seed=42, test_size=0.1):
     if not os.path.isfile('./trainset.txt'):
@@ -19,12 +19,12 @@ def load(seed=42, test_size=0.1):
         trainset = [cases[x-1] for x in idx_train]
         testset = [cases[x-1] for x in idx_test]
 
-        with open('./trainset.txt', 'w') as f:
-            for t in trainset:
-                f.write(t+'\n')
-        with open('./testset.txt', 'w') as f:
-            for v in testset:
-                f.write(v+'\n')
+        # with open('./trainset.txt', 'w') as f:
+        #     for t in trainset:
+        #         f.write(t+'\n')
+        # with open('./testset.txt', 'w') as f:
+        #     for v in testset:
+        #         f.write(v+'\n')
 
     else:
         with open('./trainset.txt', 'r') as f:
@@ -71,18 +71,7 @@ def Generator(datalist,
     random.seed(seed)
     def _preprocessing(img, mask, prep, idx=None):
         img, mask = prep._array2img([img, mask])
-
-        if isinstance(margin, int):
-            img, mask, flag = prep._getvoi([img, mask, idx, [margin for _ in range(6)]])
-        else:
-            if 'd' in margin:
-                img, mask, flag = prep._getvoi([img, mask, idx, np.random.randint(int(margin[1:])+1, size=6)])
-            elif 's' in margin:
-                img, mask, flag = prep._getvoi([img, mask, idx, [int(margin[1:]) for _ in range(6)]])
-            elif margin == '0':
-                img, mask, flag = prep._getvoi([img, mask, idx, [int(margin) for _ in range(6)]])
-            else:
-                raise ValueError("Hyperparameter 'margin' must contain 'd' or 's' or must be '0'.")
+        img, mask, flag = prep._getvoi([img, mask, idx])
         
         if flag:
             if idx == 1 and task == 'tumor':
@@ -94,7 +83,7 @@ def Generator(datalist,
                 img, mask = prep._rotation([img, mask])
             img = prep._windowing(img)
             img = prep._standard(img)
-            mask = prep._onehot(mask, mode=onehot)
+            mask = prep._onehot(mask)
             img, mask = prep._expand([img, mask])
         
         return [img, mask], flag
@@ -184,7 +173,7 @@ class Preprocessing:
         return img[::-1], mask[::-1]
 
     def _getvoi(self, xx, istest=False):
-        img, mask, idx, margin = xx
+        img, mask, idx = xx
 
         if self.task == 'tumor':
             cut = mask.copy()
@@ -233,12 +222,12 @@ class Preprocessing:
                     bbox[5] = s
                     break
 
-            img = img[np.maximum(0, bbox[0]-margin[0]):np.minimum(img.shape[0]-1, bbox[1]+1+margin[1]),
-                      np.maximum(0, bbox[2]-margin[2]):np.minimum(img.shape[1]-1, bbox[3]+1+margin[3]),
-                      np.maximum(0, bbox[4]-margin[4]):np.minimum(img.shape[2]-1, bbox[5]+1+margin[5])]
-            mask = mask[np.maximum(0, bbox[0]-margin[0]):np.minimum(mask.shape[0]-1, bbox[1]+1+margin[1]),
-                        np.maximum(0, bbox[2]-margin[2]):np.minimum(mask.shape[1]-1, bbox[3]+1+margin[3]),
-                        np.maximum(0, bbox[4]-margin[4]):np.minimum(mask.shape[2]-1, bbox[5]+1+margin[5])]
+            img = img[np.maximum(0, bbox[0]):np.minimum(img.shape[0]-1, bbox[1]+1),
+                      np.maximum(0, bbox[2]):np.minimum(img.shape[1]-1, bbox[3]+1),
+                      np.maximum(0, bbox[4]):np.minimum(img.shape[2]-1, bbox[5]+1)]
+            mask = mask[np.maximum(0, bbox[0]):np.minimum(mask.shape[0]-1, bbox[1]+1),
+                        np.maximum(0, bbox[2]):np.minimum(mask.shape[1]-1, bbox[3]+1),
+                        np.maximum(0, bbox[4]):np.minimum(mask.shape[2]-1, bbox[5]+1)]
 
         elif self.task == 'tumor1':
             threshold = [380, 230, 72]
@@ -275,9 +264,9 @@ class Preprocessing:
 
             flag = True
             center = [int(bbox[0]+bbox[1])//2,int(bbox[2]+bbox[3])//2,int(bbox[4]+bbox[5])//2]
-            bbox = [center[0]-int(threshold[0]//2)-margin[0], center[0]+int(threshold[0]//2)+margin[1],
-                    center[1]-int(threshold[1]//2)-margin[2], center[1]+int(threshold[1]//2)+margin[3],
-                    center[2]-int(threshold[2]//2)-margin[4], center[2]+int(threshold[2]//2)+margin[5]]
+            bbox = [center[0]-int(threshold[0]//2), center[0]+int(threshold[0]//2),
+                    center[1]-int(threshold[1]//2), center[1]+int(threshold[1]//2),
+                    center[2]-int(threshold[2]//2), center[2]+int(threshold[2]//2)]
 
             img = img[np.maximum(0, bbox[0]):np.minimum(img.shape[0], bbox[1]),
                       np.maximum(0, bbox[2]):np.minimum(img.shape[1], bbox[3]),
