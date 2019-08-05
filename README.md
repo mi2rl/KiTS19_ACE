@@ -6,6 +6,7 @@ Team name : ACE (Asan Coreline Ensemble)
 - **TO DO**
 
 ## Prediction
+All checkpoints are located in `checkpoint/`. Checkpoints used in challenges will be updated.
 - For searching ROI of kidney  
   `python evaluation.py --mode 1 --testset /path/testset`
 - For predicting kidney and tumor  
