@@ -229,6 +229,11 @@ class Preprocessing:
                         np.maximum(0, bbox[2]):np.minimum(mask.shape[1]-1, bbox[3]+1),
                         np.maximum(0, bbox[4]):np.minimum(mask.shape[2]-1, bbox[5]+1)]
 
+            if istest:
+                return img, mask, flag, bbox
+            else:
+                return img, mask, flag
+
         elif self.task == 'tumor1':
             threshold = [380, 230, 72]
             bbox = [0, mask.shape[0], 0, mask.shape[1], 0, mask.shape[2]]
@@ -298,10 +303,10 @@ class Preprocessing:
                 mask = mask[:,:,:-1]
                 diff1[2] -= 1
 
-        if istest:
-            return img, mask, flag, bbox, diff, diff1
-        else:
-            return img, mask, flag
+            if istest:
+                return img, mask, flag, bbox, diff, diff1
+            else:
+                return img, mask, flag
 
     def _rotation(self, xx, theta=None, dep_index=0, row_index=1, col_index=2, fill_mode='nearest', cval=0.):
         img, mask = xx
